@@ -56,6 +56,7 @@ type TapArguments struct {
 }
 
 func (client *TapClient) Feed(ch chan TapOperation) {
+	defer close(ch)
 	for {
 		ch <- getResponse(client)
 	}

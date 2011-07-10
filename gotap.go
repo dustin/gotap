@@ -18,8 +18,7 @@ func main() {
 
 	ch := make(chan tap.TapOperation)
 	go client.Feed(ch)
-	for {
-		op := <-ch
+	for op := range ch {
 		log.Printf("Got a tap operation:  %s\n", op.ToString())
 	}
 }
