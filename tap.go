@@ -34,7 +34,7 @@ func (op *TapOperation) ToString() (rv string) {
 		types = fmt.Sprintf("<unknown 0x%x>", op.OpCode)
         }
 
-	rv = fmt.Sprintf("<TapOperation %s>", types)
+	rv = fmt.Sprintf("<TapOperation %s, key='%s'>", types, op.Key)
 
 	return rv
 }
