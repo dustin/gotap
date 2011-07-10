@@ -55,11 +55,17 @@ type TapArguments struct {
 	ClientName string
 }
 
-func (client *TapClient) Feed(ch chan TapOperation) {
+func (client *TapClient) handleFeed(ch chan TapOperation) {
 	defer close(ch)
 	for {
 		ch <- getResponse(client)
 	}
+}
+
+func (client *TapClient) Feed() (ch chan TapOperation) {
+	ch = make(chan TapOperation)
+	go client.handleFeed(ch)
+	return ch
 }
 
 func transmitRequest(o *bufio.Writer, req MCRequest) {
