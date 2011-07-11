@@ -21,33 +21,17 @@ type TapOperation struct {
 }
 
 func (op *TapOperation) ToString() (rv string) {
-	var types string
-	switch op.OpCode {
-	case TAP_CONNECT:
-		types = "CONNECT"
-		break
-	case TAP_MUTATION:
-		types = "MUTATION"
-		break
-	case TAP_DELETE:
-		types = "DELETE"
-		break
-	case TAP_FLUSH:
-		types = "FLUSH"
-		break
-	case TAP_OPAQUE:
-		types = "OPAQUE"
-		break
-	case TAP_VBUCKET_SET:
-		types = "VBUCKET_SET"
-		break
-	case TAP_CHECKPOINT_START:
-		types = "CHECKPOINT_START"
-		break
-	case TAP_CHECKPOINT_END:
-		types = "CHECKPOINT_END"
-		break
-	default:
+	typeMap := map[uint8]string{TAP_CONNECT: "CONNECT",
+		TAP_MUTATION:         "MUTATION",
+		TAP_DELETE:           "DELETE",
+		TAP_FLUSH:            "FLUSH",
+		TAP_OPAQUE:           "OPAQUE",
+		TAP_VBUCKET_SET:      "VBUCKET_SET",
+		TAP_CHECKPOINT_START: "CHECKPOINT_START",
+		TAP_CHECKPOINT_END:   "CHECKPOINT_END"}
+
+	types := typeMap[op.OpCode]
+	if types == "" {
 		types = fmt.Sprintf("<unknown 0x%x>", op.OpCode)
 	}
 
