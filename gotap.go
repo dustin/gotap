@@ -14,6 +14,8 @@ func main() {
         log.Printf("Connecting to %s/%s", *prot, *dest)
 
 	var args tap.TapArguments
+	args.Backfill = 131313
+	args.VBuckets = []uint16{0, 2, 4}
 	client := tap.Connect(*prot, *dest, args)
 
 	for op := range client.Feed() {

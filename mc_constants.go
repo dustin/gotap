@@ -63,7 +63,7 @@ const (
 	TAP_CHECKPOINT_END   = 0x47
 )
 
-type TapFlags int
+type TapFlags uint32
 
 const (
 	BACKFILL          = 0x01

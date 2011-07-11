@@ -7,6 +7,7 @@ import (
         "net"
         "log"
 	"fmt"
+	"bytes"
         "io"
         "bufio"
         "runtime"
@@ -56,6 +57,51 @@ type TapArguments struct {
 	ClientName string
 }
 
+func (args *TapArguments) Flags() (rv TapFlags) {
+	rv = 0
+	if (args.Backfill != 0) {
+		rv |= BACKFILL
+	}
+	if (args.Dump) {
+		rv |= DUMP
+	}
+	if (len(args.VBuckets) > 0) {
+		rv |= LIST_VBUCKETS
+	}
+	if (args.Takeover) {
+		rv |= TAKEOVER_VBUCKETS
+	}
+	if (args.SupportAck) {
+		rv |= SUPPORT_ACK
+	}
+	if (args.KeysOnly) {
+		rv |= REQUEST_KEYS_ONLY
+	}
+	if (args.Checkpoint) {
+		rv |= CHECKPOINT
+	}
+	if (len(args.ClientName) > 0) {
+		rv |= REGISTERED_CLIENT
+	}
+	return rv
+}
+
+func (args *TapArguments) Body() (rv []byte) {
+	buf := bytes.NewBuffer([]byte{})
+
+	if (args.Backfill > 0) {
+		buf.Write(WriteUint64(args.Backfill))
+	}
+
+	if (len(args.VBuckets) > 0) {
+		buf.Write(WriteUint16(uint16(len(args.VBuckets))))
+		for i := 0; i < len(args.VBuckets); i++ {
+			buf.Write(WriteUint16(args.VBuckets[i]))
+		}
+	}
+	return buf.Bytes()
+}
+
 func (client *TapClient) handleFeed(ch chan TapOperation) {
 	defer close(ch)
 	for {
@@ -100,8 +146,8 @@ func start(client *TapClient, args TapArguments) {
         req.Key = empty
         req.Cas = 0
         req.Opaque = 0
-        req.Extras = WriteUint64(BACKFILL)
-        req.Body = empty
+        req.Extras = WriteUint32(uint32(args.Flags()))
+        req.Body = args.Body()
         transmitRequest(client.writer, req)
 }
 
