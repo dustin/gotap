@@ -5,13 +5,13 @@ include $(GOROOT)/src/Make.inc
 OBJS=mc_constants.$O \
 		byte_manipulation.$O \
 		tap.$O \
-		gotap.$O
+		tap_example.$O
 
-gotap: $(OBJS)
-	$(LD) -o gotap gotap.$O
+tap_example: $(OBJS)
+	$(LD) -o $@ $@.$O
 
 clean:
-	rm -f $(OBJS) gotap
+	rm -f $(OBJS) tap_example
 
 .go.$O:
 	$(GC) $<
