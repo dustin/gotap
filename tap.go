@@ -55,6 +55,7 @@ type TapArguments struct {
 	KeysOnly   bool
 	Checkpoint bool
 	ClientName string
+	RegisteredClient bool
 }
 
 func (args *TapArguments) Flags() (rv TapFlags) {
@@ -80,7 +81,7 @@ func (args *TapArguments) Flags() (rv TapFlags) {
 	if args.Checkpoint {
 		rv |= CHECKPOINT
 	}
-	if len(args.ClientName) > 0 {
+	if args.RegisteredClient {
 		rv |= REGISTERED_CLIENT
 	}
 	return rv
@@ -141,9 +142,8 @@ func transmitRequest(o *bufio.Writer, req MCRequest) {
 
 func start(client *TapClient, args TapArguments) {
 	var req MCRequest
-	empty := make([]byte, 0)
 	req.Opcode = TAP_CONNECT
-	req.Key = empty
+	req.Key = []byte(args.ClientName)
 	req.Cas = 0
 	req.Opaque = 0
 	req.Extras = WriteUint32(uint32(args.Flags()))
