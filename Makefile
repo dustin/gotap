@@ -3,7 +3,6 @@ include $(GOROOT)/src/Make.inc
 .SUFFIXES: .go .$O
 
 OBJS=mc_constants.$O \
-		byte_manipulation.$O \
 		tap.$O \
 		tap_example.$O
 

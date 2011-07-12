@@ -1,7 +1,7 @@
 package tap
 
 import . "./mc_constants"
-import . "./byte_manipulation"
+import "encoding/binary"
 
 import (
 	"net"
@@ -13,6 +13,7 @@ import (
 	"runtime"
 )
 
+var bigEndian = binary.BigEndian
 type TapOperation struct {
 	OpCode            uint8
 	Status            uint16
@@ -91,13 +92,13 @@ func (args *TapArguments) Body() (rv []byte) {
 	buf := bytes.NewBuffer([]byte{})
 
 	if args.Backfill > 0 {
-		buf.Write(WriteUint64(args.Backfill))
+		binary.Write(buf, bigEndian, uint64(args.Backfill))
 	}
 
 	if len(args.VBuckets) > 0 {
-		buf.Write(WriteUint16(uint16(len(args.VBuckets))))
+		binary.Write(buf, bigEndian, uint16(len(args.VBuckets)))
 		for i := 0; i < len(args.VBuckets); i++ {
-			buf.Write(WriteUint16(args.VBuckets[i]))
+			binary.Write(buf, bigEndian, uint16(args.VBuckets[i]))
 		}
 	}
 	return buf.Bytes()
@@ -118,25 +119,25 @@ func (client *TapClient) Feed() (ch chan TapOperation) {
 
 func transmitRequest(o *bufio.Writer, req MCRequest) {
 	// 0
-	writeByte(o, REQ_MAGIC)
-	writeByte(o, req.Opcode)
-	writeUint16(o, uint16(len(req.Key)))
+	binary.Write(o, bigEndian, uint8(REQ_MAGIC))
+	binary.Write(o, bigEndian, uint8(req.Opcode))
+	binary.Write(o, bigEndian, uint16(len(req.Key)))
 	// 4
-	writeByte(o, uint8(len(req.Extras)))
-	writeByte(o, 0)
-	writeUint16(o, req.VBucket)
+	binary.Write(o, bigEndian, uint8(len(req.Extras)))
+	binary.Write(o, bigEndian, uint8(0))
+	binary.Write(o, bigEndian, uint16(req.VBucket))
 	// 8
-	writeUint32(o, uint32(len(req.Body))+
-		uint32(len(req.Key))+
-		uint32(len(req.Extras)))
+	binary.Write(o, bigEndian, uint32(len(req.Body)+
+		len(req.Key)+
+		len(req.Extras)))
 	// 12
-	writeUint32(o, req.Opaque)
+	binary.Write(o, bigEndian, uint32(req.Opaque))
 	// 16
-	writeUint64(o, req.Cas)
+	binary.Write(o, bigEndian, uint64(req.Cas))
 	// The rest
-	writeBytes(o, req.Extras)
-	writeBytes(o, req.Key)
-	writeBytes(o, req.Body)
+	binary.Write(o, bigEndian, req.Extras)
+	binary.Write(o, bigEndian, req.Key)
+	binary.Write(o, bigEndian, req.Body)
 	o.Flush()
 }
 
@@ -146,7 +147,8 @@ func start(client *TapClient, args TapArguments) {
 	req.Key = []byte(args.ClientName)
 	req.Cas = 0
 	req.Opaque = 0
-	req.Extras = WriteUint32(uint32(args.Flags()))
+	req.Extras = make([]byte, uint32(args.Flags()))
+	bigEndian.PutUint32(req.Extras, uint32(args.Flags()))
 	req.Body = args.Body()
 	transmitRequest(client.writer, req)
 }
@@ -178,27 +180,6 @@ func writeBytes(s *bufio.Writer, data []byte) {
 	}
 	return
 
-}
-
-func writeByte(s *bufio.Writer, b byte) {
-	var data []byte = make([]byte, 1)
-	data[0] = b
-	writeBytes(s, data)
-}
-
-func writeUint16(s *bufio.Writer, n uint16) {
-	data := WriteUint16(n)
-	writeBytes(s, data)
-}
-
-func writeUint32(s *bufio.Writer, n uint32) {
-	data := WriteUint32(n)
-	writeBytes(s, data)
-}
-
-func writeUint64(s *bufio.Writer, n uint64) {
-	data := WriteUint64(n)
-	writeBytes(s, data)
 }
 
 func readOb(s net.Conn, buf []byte) {
@@ -233,12 +214,12 @@ func grokHeader(hdrBytes []byte) (rv TapOperation) {
 		runtime.Goexit()
 	}
 	rv.OpCode = hdrBytes[1]
-	rv.Key = make([]byte, ReadUint16(hdrBytes, 2))
+	rv.Key = make([]byte, bigEndian.Uint16(hdrBytes[2:]))
 	rv.Extras = make([]byte, hdrBytes[4])
 	rv.Status = uint16(hdrBytes[7])
-	bodyLen := ReadUint32(hdrBytes, 8) - uint32(len(rv.Key)) - uint32(len(rv.Extras))
+	bodyLen := bigEndian.Uint32(hdrBytes[8:]) - uint32(len(rv.Key)) - uint32(len(rv.Extras))
 	rv.Body = make([]byte, bodyLen)
-	// rv.Opaque = ReadUint32(hdrBytes, 12)
-	rv.Cas = ReadUint64(hdrBytes, 16)
+	//rv.Opaque = ReadUint32(hdrBytes, 12)
+	rv.Cas = bigEndian.Uint64(hdrBytes[16:])
 	return
 }
