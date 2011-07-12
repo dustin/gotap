@@ -1,7 +1,6 @@
 package tap
 
 import . "./mc_constants"
-import "encoding/binary"
 
 import (
 	"net"
@@ -11,9 +10,11 @@ import (
 	"io"
 	"bufio"
 	"runtime"
+	"encoding/binary"
 )
 
 var bigEndian = binary.BigEndian
+
 type TapOperation struct {
 	OpCode            uint8
 	Status            uint16
@@ -48,14 +49,14 @@ type TapClient struct {
 }
 
 type TapArguments struct {
-	Backfill   uint64
-	Dump       bool
-	VBuckets   []uint16
-	Takeover   bool
-	SupportAck bool
-	KeysOnly   bool
-	Checkpoint bool
-	ClientName string
+	Backfill         uint64
+	Dump             bool
+	VBuckets         []uint16
+	Takeover         bool
+	SupportAck       bool
+	KeysOnly         bool
+	Checkpoint       bool
+	ClientName       string
 	RegisteredClient bool
 }
 
