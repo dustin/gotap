@@ -15,14 +15,14 @@ import (
 var bigEndian = binary.BigEndian
 
 type TapOperation struct {
-	OpCode            uint8
+	OpCode            gomemcached.CommandCode
 	Status            uint16
 	Cas               uint64
 	Extras, Key, Body []byte
 }
 
 func (op *TapOperation) ToString() (rv string) {
-	typeMap := map[uint8]string{
+	typeMap := map[gomemcached.CommandCode]string{
 		gomemcached.TAP_CONNECT:          "CONNECT",
 		gomemcached.TAP_MUTATION:         "MUTATION",
 		gomemcached.TAP_DELETE:           "DELETE",
@@ -211,7 +211,7 @@ func grokHeader(hdrBytes []byte) (rv TapOperation) {
 		log.Printf("Bad magic: %x", hdrBytes[0])
 		runtime.Goexit()
 	}
-	rv.OpCode = hdrBytes[1]
+	rv.OpCode = gomemcached.CommandCode(hdrBytes[1])
 	rv.Key = make([]byte, bigEndian.Uint16(hdrBytes[2:]))
 	rv.Extras = make([]byte, hdrBytes[4])
 	rv.Status = uint16(hdrBytes[7])
