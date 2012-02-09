@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/dustin/gomemcached"
 	"io"
 	"log"
 	"net"
@@ -21,14 +22,15 @@ type TapOperation struct {
 }
 
 func (op *TapOperation) ToString() (rv string) {
-	typeMap := map[uint8]string{TAP_CONNECT: "CONNECT",
-		TAP_MUTATION:         "MUTATION",
-		TAP_DELETE:           "DELETE",
-		TAP_FLUSH:            "FLUSH",
-		TAP_OPAQUE:           "OPAQUE",
-		TAP_VBUCKET_SET:      "VBUCKET_SET",
-		TAP_CHECKPOINT_START: "CHECKPOINT_START",
-		TAP_CHECKPOINT_END:   "CHECKPOINT_END"}
+	typeMap := map[uint8]string{
+		gomemcached.TAP_CONNECT:          "CONNECT",
+		gomemcached.TAP_MUTATION:         "MUTATION",
+		gomemcached.TAP_DELETE:           "DELETE",
+		gomemcached.TAP_FLUSH:            "FLUSH",
+		gomemcached.TAP_OPAQUE:           "OPAQUE",
+		gomemcached.TAP_VBUCKET_SET:      "VBUCKET_SET",
+		gomemcached.TAP_CHECKPOINT_START: "CHECKPOINT_START",
+		gomemcached.TAP_CHECKPOINT_END:   "CHECKPOINT_END"}
 
 	types := typeMap[op.OpCode]
 	if types == "" {
@@ -58,31 +60,31 @@ type TapArguments struct {
 	RegisteredClient bool
 }
 
-func (args *TapArguments) Flags() (rv TapFlags) {
+func (args *TapArguments) Flags() (rv gomemcached.TapFlags) {
 	rv = 0
 	if args.Backfill != 0 {
-		rv |= BACKFILL
+		rv |= gomemcached.BACKFILL
 	}
 	if args.Dump {
-		rv |= DUMP
+		rv |= gomemcached.DUMP
 	}
 	if len(args.VBuckets) > 0 {
-		rv |= LIST_VBUCKETS
+		rv |= gomemcached.LIST_VBUCKETS
 	}
 	if args.Takeover {
-		rv |= TAKEOVER_VBUCKETS
+		rv |= gomemcached.TAKEOVER_VBUCKETS
 	}
 	if args.SupportAck {
-		rv |= SUPPORT_ACK
+		rv |= gomemcached.SUPPORT_ACK
 	}
 	if args.KeysOnly {
-		rv |= REQUEST_KEYS_ONLY
+		rv |= gomemcached.REQUEST_KEYS_ONLY
 	}
 	if args.Checkpoint {
-		rv |= CHECKPOINT
+		rv |= gomemcached.CHECKPOINT
 	}
 	if args.RegisteredClient {
-		rv |= REGISTERED_CLIENT
+		rv |= gomemcached.REGISTERED_CLIENT
 	}
 	return rv
 }
@@ -116,9 +118,9 @@ func (client *TapClient) Feed() (ch chan TapOperation) {
 	return ch
 }
 
-func transmitRequest(o *bufio.Writer, req mcRequest) {
+func transmitRequest(o *bufio.Writer, req gomemcached.MCRequest) {
 	// 0
-	binary.Write(o, bigEndian, uint8(mcREQ_MAGIC))
+	binary.Write(o, bigEndian, uint8(gomemcached.REQ_MAGIC))
 	binary.Write(o, bigEndian, uint8(req.Opcode))
 	binary.Write(o, bigEndian, uint16(len(req.Key)))
 	// 4
@@ -141,8 +143,8 @@ func transmitRequest(o *bufio.Writer, req mcRequest) {
 }
 
 func start(client *TapClient, args TapArguments) {
-	var req mcRequest
-	req.Opcode = TAP_CONNECT
+	var req gomemcached.MCRequest
+	req.Opcode = gomemcached.TAP_CONNECT
 	req.Key = []byte(args.ClientName)
 	req.Cas = 0
 	req.Opaque = 0
@@ -187,9 +189,9 @@ func readOb(s net.Conn, buf []byte) {
 }
 
 func getResponse(client *TapClient) TapOperation {
-	hdrBytes := make([]byte, HDR_LEN)
+	hdrBytes := make([]byte, gomemcached.HDR_LEN)
 	bytesRead, err := io.ReadFull(client.Conn, hdrBytes)
-	if err != nil || bytesRead != HDR_LEN {
+	if err != nil || bytesRead != gomemcached.HDR_LEN {
 		log.Printf("Error reading message: %s (%d bytes)", err, bytesRead)
 		runtime.Goexit()
 	}
@@ -205,7 +207,7 @@ func readContents(s net.Conn, res TapOperation) {
 }
 
 func grokHeader(hdrBytes []byte) (rv TapOperation) {
-	if hdrBytes[0] != mcREQ_MAGIC {
+	if hdrBytes[0] != gomemcached.REQ_MAGIC {
 		log.Printf("Bad magic: %x", hdrBytes[0])
 		runtime.Goexit()
 	}
