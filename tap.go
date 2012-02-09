@@ -1,16 +1,14 @@
 package tap
 
-import . "./mc_constants"
-
 import (
-	"net"
-	"log"
-	"fmt"
-	"bytes"
-	"io"
 	"bufio"
-	"runtime"
+	"bytes"
 	"encoding/binary"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"runtime"
 )
 
 var bigEndian = binary.BigEndian
@@ -118,9 +116,9 @@ func (client *TapClient) Feed() (ch chan TapOperation) {
 	return ch
 }
 
-func transmitRequest(o *bufio.Writer, req MCRequest) {
+func transmitRequest(o *bufio.Writer, req mcRequest) {
 	// 0
-	binary.Write(o, bigEndian, uint8(REQ_MAGIC))
+	binary.Write(o, bigEndian, uint8(mcREQ_MAGIC))
 	binary.Write(o, bigEndian, uint8(req.Opcode))
 	binary.Write(o, bigEndian, uint16(len(req.Key)))
 	// 4
@@ -143,7 +141,7 @@ func transmitRequest(o *bufio.Writer, req MCRequest) {
 }
 
 func start(client *TapClient, args TapArguments) {
-	var req MCRequest
+	var req mcRequest
 	req.Opcode = TAP_CONNECT
 	req.Key = []byte(args.ClientName)
 	req.Cas = 0
@@ -161,10 +159,7 @@ func Connect(prot string, dest string, args TapArguments) (rv *TapClient) {
 	}
 	rv = new(TapClient)
 	rv.Conn = conn
-	rv.writer, err = bufio.NewWriterSize(rv.Conn, 256)
-	if err != nil {
-		panic("Can't make a buffer")
-	}
+	rv.writer = bufio.NewWriterSize(rv.Conn, 256)
 
 	start(rv, args)
 
@@ -210,7 +205,7 @@ func readContents(s net.Conn, res TapOperation) {
 }
 
 func grokHeader(hdrBytes []byte) (rv TapOperation) {
-	if hdrBytes[0] != REQ_MAGIC {
+	if hdrBytes[0] != mcREQ_MAGIC {
 		log.Printf("Bad magic: %x", hdrBytes[0])
 		runtime.Goexit()
 	}
