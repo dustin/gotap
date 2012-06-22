@@ -60,7 +60,7 @@ type TapArguments struct {
 	RegisteredClient bool
 }
 
-func (args *TapArguments) Flags() (rv gomemcached.TapFlags) {
+func (args *TapArguments) Flags() (rv uint32) {
 	rv = 0
 	if args.Backfill != 0 {
 		rv |= gomemcached.BACKFILL
