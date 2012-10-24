@@ -5,11 +5,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/dustin/gomemcached"
 	"io"
 	"log"
 	"net"
 	"runtime"
+
+	"github.com/dustin/gomemcached"
+	"github.com/dustin/gomemcached/client"
 )
 
 var bigEndian = binary.BigEndian
@@ -112,6 +114,18 @@ func (client *TapClient) handleFeed(ch chan TapOperation) {
 	}
 }
 
+func (client *TapClient) AuthPlain(u, p string) error {
+	mc, err := memcached.Wrap(client.Conn)
+	if err != nil {
+		return err
+	}
+	_, err = mc.Auth(u, p)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (client *TapClient) Feed() (ch chan TapOperation) {
 	ch = make(chan TapOperation)
 	go client.handleFeed(ch)
@@ -142,7 +156,7 @@ func transmitRequest(o *bufio.Writer, req gomemcached.MCRequest) {
 	o.Flush()
 }
 
-func start(client *TapClient, args TapArguments) {
+func (client *TapClient) Start(args TapArguments) {
 	var req gomemcached.MCRequest
 	req.Opcode = gomemcached.TAP_CONNECT
 	req.Key = []byte(args.ClientName)
@@ -154,7 +168,7 @@ func start(client *TapClient, args TapArguments) {
 	transmitRequest(client.writer, req)
 }
 
-func Connect(prot string, dest string, args TapArguments) (rv *TapClient) {
+func Connect(prot string, dest string) (rv *TapClient) {
 	conn, err := net.Dial(prot, dest)
 	if err != nil {
 		log.Fatalf("Failed to connect: %s", err)
@@ -162,8 +176,6 @@ func Connect(prot string, dest string, args TapArguments) (rv *TapClient) {
 	rv = new(TapClient)
 	rv.Conn = conn
 	rv.writer = bufio.NewWriterSize(rv.Conn, 256)
-
-	start(rv, args)
 
 	return rv
 }
