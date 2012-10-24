@@ -29,10 +29,11 @@ func main() {
 		}
 	}
 
-	var args tap.TapArguments
-	args.Backfill = 131313
-	args.VBuckets = []uint16{0, 2, 4}
-	args.ClientName = "go_go_gadget_tap"
+	args := tap.TapArguments{
+		Backfill:   131313,
+		VBuckets:   []uint16{0, 2, 4},
+		ClientName: "go_go_gadget_tap",
+	}
 
 	ch, err := tap.Feed(client, args)
 	if err != nil {
