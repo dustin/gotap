@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/dustin/gotap"
 	"log"
+
+	"github.com/dustin/gomemcached/client"
+	"github.com/dustin/gotap"
 )
 
 var prot = flag.String("prot", "tcp", "Layer 3 protocol (tcp, tcp4, tcp6)")
@@ -15,10 +17,13 @@ func main() {
 	flag.Parse()
 	log.Printf("Connecting to %s/%s", *prot, *dest)
 
-	client := tap.Connect(*prot, *dest)
+	client, err := memcached.Connect(*prot, *dest)
+	if err != nil {
+		log.Fatalf("Error connecting: %v", err)
+	}
 
 	if *u != "" {
-		err := client.AuthPlain(*u, *p)
+		_, err := client.Auth(*u, *p)
 		if err != nil {
 			log.Fatalf("auth error: %v", err)
 		}
@@ -28,9 +33,12 @@ func main() {
 	args.Backfill = 131313
 	args.VBuckets = []uint16{0, 2, 4}
 	args.ClientName = "go_go_gadget_tap"
-	client.Start(args)
 
-	for op := range client.Feed() {
+	ch, err := tap.Feed(client, args)
+	if err != nil {
+		log.Fatalf("Error starting tap feed: %v", err)
+	}
+	for op := range ch {
 		log.Printf("Tap OP:  %s\n", op.ToString())
 	}
 }
